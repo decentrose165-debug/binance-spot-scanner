@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Binance Spot Scanner V1 — Four Strategies</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#141c30;--line:#293550;--text:#eef3ff;--muted:#aab7d0;--green:#3bd69a;--red:#ff737e;--yellow:#ffd166;--blue:#79aaff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#0b1020,#101a2e);font:15px/1.5 system-ui,Segoe UI,Arial;color:var(--text)}
+main{max-width:1250px;margin:auto;padding:22px}h1{margin:0 0 6px;font-size:clamp(25px,4vw,36px)}h2{margin:0 0 12px}p{color:var(--muted);margin:6px 0 18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 10px 28px #0002}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}button,select,input{background:#0c1426;color:var(--text);border:1px solid #3a4968;border-radius:9px;padding:10px 12px;font:inherit}button{cursor:pointer;background:#2456a6;border-color:#3e75cc;font-weight:700}button:disabled{opacity:.55;cursor:wait}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.stat{padding:13px;border-radius:12px;background:#0c1426;border:1px solid var(--line)}.stat small{display:block;color:var(--muted)}.stat strong{font-size:21px}
+.status{margin-top:12px;color:var(--muted)}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:900px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:#b9c8e7;font-size:13px}tr:hover td{background:#ffffff08}.good{color:var(--green);font-weight:700}.bad{color:var(--red)}.warn{color:var(--yellow)}.muted{color:var(--muted)}.empty{text-align:center;padding:24px;color:var(--muted)}details{color:var(--muted)}summary{cursor:pointer;color:var(--text);font-weight:700}.foot{font-size:12px;color:var(--muted)}.strategy{border-top:3px solid #45689f}.strategy h2{font-size:20px}.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 8px;font-size:12px;color:var(--muted)}a{color:var(--blue)}
+</style>
+</head>
+<body><main>
+<h1>Binance Spot Scanner — V1 + Strategy Lab</h1>
+<p>Binance Spot USDT pairs only. Four strategies are scanned and displayed separately so their signals can be compared; this page does not place orders.</p>
+<div class="panel">
+ <div class="controls">
+  <button id="scanBtn">Scan All 4 Strategies</button>
+  <label>Coin limit <select id="limit"><option>30</option><option selected>50</option><option>100</option><option>200</option></select></label>
+  <label>Refresh <select id="refresh"><option value="0">Manual only</option><option value="300000">5 minutes</option><option value="900000">15 minutes</option></select></label>
+  <label><input type="checkbox" id="showAll"> Show non-matching coins too</label>
+ </div>
+ <div id="status" class="status">Ready. Press “Scan All 4 Strategies”.</div>
+</div>
+<div class="panel stats">
+ <div class="stat"><small>USDT Spot pairs scanned</small><strong id="checked">—</strong></div>
+ <div class="stat"><small>EMA 9/21 signals</small><strong id="s1count">—</strong></div>
+ <div class="stat"><small>EMA 9/33 signals</small><strong id="s2count">—</strong></div>
+ <div class="stat"><small>Regular bullish divergence</small><strong id="s3count">—</strong></div>
+ <div class="stat"><small>Hidden bullish divergence</small><strong id="s4count">—</strong></div>
+</div>
+<div class="panel strategy">
+<h2>Strategy 1 — EMA 9 + EMA 21 Pullback <span class="tag">separate results</span></h2>
+<p>1H trend filter, price retests EMA 9 and closes back above it while EMA 9 is above EMA 21. Candidate signal, not a promise.</p>
+<div class="table-wrap"><table><thead><tr><th>Pair</th><th>Price</th><th>24h</th><th>EMA 9</th><th>EMA 21</th><th>Entry reference</th><th>+1% target</th><th>Signal</th></tr></thead><tbody id="rows1"><tr><td colspan="8" class="empty">No scan yet.</td></tr></tbody></table></div>
+</div>
+<div class="panel strategy">
+<h2>Strategy 2 — EMA 9 + EMA 33 Pullback <span class="tag">separate results</span></h2>
+<p>Same pullback idea, but the slower EMA 33 is used to compare whether signals are more selective than EMA 9/21.</p>
+<div class="table-wrap"><table><thead><tr><th>Pair</th><th>Price</th><th>24h</th><th>EMA 9</th><th>EMA 33</th><th>Entry reference</th><th>+1% target</th><th>Signal</th></tr></thead><tbody id="rows2"><tr><td colspan="8" class="empty">No scan yet.</td></tr></tbody></table></div>
+</div>
+<div class="panel strategy">
+<h2>Strategy 3 — Regular Bullish Divergence <span class="tag">Price lower low · RSI higher low</span></h2>
+<p>Looks for two recent swing lows where price makes a lower low and RSI makes a higher low, with a basic trend/momentum confirmation. Signals can be early and may fail.</p>
+<div class="table-wrap"><table><thead><tr><th>Pair</th><th>Price</th><th>24h</th><th>Older low</th><th>Newer low</th><th>RSI older → newer</th><th>+1% reference target</th><th>Signal</th></tr></thead><tbody id="rows3"><tr><td colspan="8" class="empty">No scan yet.</td></tr></tbody></table></div>
+</div>
+<div class="panel strategy">
+<h2>Strategy 4 — Hidden Bullish Divergence <span class="tag">Price higher low · RSI lower low</span></h2>
+<p>Looks for price making a higher swing low while RSI makes a lower swing low, suggesting possible continuation of an uptrend. Kept separate from regular divergence.</p>
+<div class="table-wrap"><table><thead><tr><th>Pair</th><th>Price</th><th>24h</th><th>Older low</th><th>Newer low</th><th>RSI older → newer</th><th>+1% reference target</th><th>Signal</th></tr></thead><tbody id="rows4"><tr><td colspan="8" class="empty">No scan yet.</td></tr></tbody></table></div>
+</div>
+<div class="panel"><details><summary>How the strategies are defined and important limitations</summary>
+<ul>
+<li><b>Spot only:</b> live Binance USDT spot pairs; leveraged tokens are excluded. Each pair opens on TradingView when clicked.</li>
+<li><b>EMA 9/21 and EMA 9/33:</b> completed 1H candle; close above EMA 9 after touching/reaching EMA 9 during the candle; EMA 9 above the comparison EMA; EMA 20 above EMA 50 trend filter.</li>
+<li><b>Regular bullish divergence:</b> the two most recent confirmed local swing lows show price lower low and RSI higher low.</li>
+<li><b>Hidden bullish divergence:</b> the two most recent confirmed local swing lows show price higher low and RSI lower low; 1H EMA 20 above EMA 50 trend filter.</li>
+<li><b>+1% target:</b> a displayed calculation from the latest price/entry reference, not a forecast, guaranteed return, or backtest result. Fees and slippage are not included.</li>
+<li>This first strategy lab identifies candidate setups only. It does not prove any strategy will reach +1%. Use paper testing/backtesting before risking money. It does not place orders and needs no Binance API key.</li>
+</ul>
+</details></div>
+<p class="foot">Uses Binance public market-data endpoints. If API requests are blocked by network/CORS or rate limits, try a smaller coin limit. Never enter your Binance password, API key, or secret into this page. Phone notifications while the laptop is closed are not provided by this local HTML file.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+let timer = null, busy = false;
+const API = 'https://api.binance.com';
+const excluded = /UPUSDT$|DOWNUSDT$|BULLUSDT$|BEARUSDT$/;
+function fmt(n,d=6){return Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:d}):'—'}
+async function getJSON(path){
+ const r=await fetch(API+path); if(!r.ok) throw new Error('Binance API HTTP '+r.status); return r.json();
+}
+function ema(values,period){
+ if(values.length<period)return [];
+ const k=2/(period+1),out=[]; let prev=values.slice(0,period).reduce((a,b)=>a+b,0)/period;out[period-1]=prev;
+ for(let i=period;i<values.length;i++){prev=values[i]*k+prev*(1-k);out[i]=prev;} return out;
+}
+function rsiSeries(closes,period=14){
+ const out=Array(closes.length).fill(null);if(closes.length<=period)return out;
+ let gains=0,losses=0;for(let i=1;i<=period;i++){const d=closes[i]-closes[i-1];if(d>=0)gains+=d;else losses-=d;}
+ let ag=gains/period,al=losses/period;out[period]=al===0?100:100-100/(1+ag/al);
+ for(let i=period+1;i<closes.length;i++){const d=closes[i]-closes[i-1],g=Math.max(d,0),l=Math.max(-d,0);ag=(ag*(period-1)+g)/period;al=(al*(period-1)+l)/period;out[i]=al===0?100:100-100/(1+ag/al);}return out;
+}
+function tradingView(symbol){return `https://www.tradingview.com/chart/?symbol=BINANCE%3A${encodeURIComponent(symbol)}`}
+function pairLink(symbol){return `<a href="${tradingView(symbol)}" target="_blank" rel="noopener noreferrer"><b>${symbol} ↗</b></a>`}
+function fmtChange(n){return `<span class="${n>=0?'good':'bad'}">${n>=0?'+':''}${fmt(n,2)}%</span>`}
+function target1(entry){return Number.isFinite(entry)?fmt(entry*1.01,8):'—'}
+function uptrend(c){const cl=c.map(x=>x[4]),e20=ema(cl,20),e50=ema(cl,50),i=c.length-1;return e20[i]!==undefined&&e50[i]!==undefined&&e20[i]>e50[i]&&cl[i]>e20[i]}
+function pullback(c,slow){
+ const cl=c.map(x=>x[4]),e9=ema(cl,9),es=ema(cl,slow),i=c.length-1;
+ if(i<slow+2||!e9[i]||!es[i])return {signal:false,e9:e9[i],es:es[i]};
+ const prevClose=cl[i-1], low=Number(c[i][3]), close=cl[i], touched=low<=e9[i]*1.003;
+ const bounced=close>e9[i]&&prevClose<=e9[i-1]*1.015;
+ const signal=uptrend(c)&&e9[i]>es[i]&&touched&&close>e9[i]&&bounced;
+ return {signal,e9:e9[i],es:es[i]};
+}
+function swingLows(c,rsis){
+ const lows=[];
+ // Confirmed local lows: low lower than 2 candles either side; exclude forming candle upstream.
+ for(let i=2;i<c.length-2;i++){
+  const v=Number(c[i][3]);
+  if(v<Number(c[i-1][3])&&v<Number(c[i-2][3])&&v<=Number(c[i+1][3])&&v<=Number(c[i+2][3])&&Number.isFinite(rsis[i]))lows.push({i,price:v,rsi:rsis[i]});
+ }
+ return lows;
+}
+function divergence(c,rsis,hidden){
+ const lows=swingLows(c,rsis);if(lows.length<2)return {signal:false,older:null,newer:null};
+ const a=lows[lows.length-2],b=lows[lows.length-1], separated=b.i-a.i>=3&&b.i-a.i<=40;
+ const shape=hidden?(b.price>a.price&&b.rsi<a.rsi):(b.price<a.price&&b.rsi>a.rsi);
+ const trendOk=!hidden||uptrend(c);
+ // Require newest swing to be reasonably recent; the 2 right-hand candles confirm it.
+ const recent=(c.length-1-b.i)<=8;
+ return {signal:separated&&shape&&recent&&trendOk,older:a,newer:b};
+}
+function rowPull(x,slow){
+ const p=pullback(x.c,slow),signal=p.signal,entry=x.price;
+ return `<tr><td>${pairLink(x.symbol)}</td><td>${fmt(x.price,8)}</td><td>${fmtChange(x.change)}</td><td>${fmt(p.e9,8)}</td><td>${fmt(p.es,8)}</td><td>${fmt(entry,8)}</td><td>${target1(entry)}</td><td class="${signal?'good':'muted'}">${signal?'PULLBACK CANDIDATE':'—'}</td></tr>`;
+}
+function rowDiv(x,hidden){
+ const rsi=rsiSeries(x.c.map(c=>c[4])),d=divergence(x.c,rsi,hidden),a=d.older,b=d.newer;
+ return `<tr><td>${pairLink(x.symbol)}</td><td>${fmt(x.price,8)}</td><td>${fmtChange(x.change)}</td><td>${a?fmt(a.price,8):'—'}</td><td>${b?fmt(b.price,8):'—'}</td><td>${a&&b?fmt(a.rsi,1)+' → '+fmt(b.rsi,1):'—'}</td><td>${target1(x.price)}</td><td class="${d.signal?'good':'muted'}">${d.signal?'DIVERGENCE CANDIDATE':'—'}</td></tr>`;
+}
+function renderStrategy(id,rows,filter){
+ const selected=$('showAll').checked?rows:rows.filter(filter);
+ $(id).innerHTML=selected.length?selected.map(x=>x.html).join(''):`<tr><td colspan="8" class="empty">${rows.length?'No matching setups right now.':'No data returned.'}</td></tr>`;
+}
+async function scan(){
+ if(busy)return;busy=true;$('scanBtn').disabled=true;$('status').textContent='Loading Binance Spot market…';
+ try{
+  const [info,tickers]=await Promise.all([getJSON('/api/v3/exchangeInfo'),getJSON('/api/v3/ticker/24hr')]);
+  const map=new Map(tickers.map(t=>[t.symbol,t]));
+  const syms=info.symbols.filter(s=>s.status==='TRADING'&&s.isSpotTradingAllowed&&s.quoteAsset==='USDT'&&!excluded.test(s.symbol)&&map.has(s.symbol))
+   .sort((a,b)=>Number(map.get(b.symbol).quoteVolume)-Number(map.get(a.symbol).quoteVolume)).slice(0,Number($('limit').value));
+  $('checked').textContent=syms.length;
+  const all=[];let done=0;
+  for(let i=0;i<syms.length;i+=5){
+   const batch=syms.slice(i,i+5);
+   const got=await Promise.all(batch.map(async s=>{
+    try{
+     const raw=await getJSON(`/api/v3/klines?symbol=${s.symbol}&interval=1h&limit=100`);
+     const c=raw.slice(0,-1).map(k=>[Number(k[0]),Number(k[1]),Number(k[2]),Number(k[3]),Number(k[4]),Number(k[5])]);
+     return {symbol:s.symbol,price:Number(map.get(s.symbol).lastPrice),change:Number(map.get(s.symbol).priceChangePercent),c};
+    }catch(e){return null;}
+   }));
+   all.push(...got.filter(Boolean));done+=batch.length;$('status').textContent=`Analyzing 1H candles… ${Math.min(done,syms.length)}/${syms.length}`;
+  }
+  const s1=all.map(x=>({...x,signal:pullback(x.c,21).signal,html:rowPull(x,21)})),s2=all.map(x=>({...x,signal:pullback(x.c,33).signal,html:rowPull(x,33)})),s3=all.map(x=>({...x,signal:divergence(x.c,rsiSeries(x.c.map(c=>c[4])),false).signal,html:rowDiv(x,false)})),s4=all.map(x=>({...x,signal:divergence(x.c,rsiSeries(x.c.map(c=>c[4])),true).signal,html:rowDiv(x,true)}));
+  const isSignal=(x)=>x.signal;
+  $('s1count').textContent=s1.filter(isSignal).length;$('s2count').textContent=s2.filter(isSignal).length;$('s3count').textContent=s3.filter(isSignal).length;$('s4count').textContent=s4.filter(isSignal).length;
+  renderStrategy('rows1',s1,isSignal);renderStrategy('rows2',s2,isSignal);renderStrategy('rows3',s3,isSignal);renderStrategy('rows4',s4,isSignal);
+  $('status').textContent=`Scan complete: ${all.length}/${syms.length} pairs analyzed. Each strategy has its own results table.`;
+ }catch(e){$('status').textContent='Scan failed: '+e.message+'. Check internet or reduce the coin limit.';}
+ finally{$('scanBtn').disabled=false;busy=false;}
+}
+$('scanBtn').addEventListener('click',scan);
+$('showAll').addEventListener('change',()=>{if(!busy)scan();});
+$('refresh').addEventListener('change',()=>{if(timer)clearInterval(timer);timer=null;const ms=Number($('refresh').value);if(ms)timer=setInterval(scan,ms);});
+</script>
+</body></html>
